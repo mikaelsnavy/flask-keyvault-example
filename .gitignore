@@ -1,2 +1,8 @@
 .vscode/*
 Pipfile
+terraform/.terraform/
+terraform/.terraform.*
+terraform/plan
+terraform/*.tfstate
+.env
+*.pyc

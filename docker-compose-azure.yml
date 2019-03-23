@@ -1,0 +1,14 @@
+version: "3.3"
+
+services:
+  api:
+    image: "mikaelsnavy/flask-keyvault-example"
+    restart: always
+    command: ["sh","-c","python -m flask run --host 0.0.0.0 --port 80"]
+    # command: ["sh","-c","python -m flask create-db && python -m ptvsd --host 0.0.0.0 --port 8080 --multiprocess --wait -m flask run --host 0.0.0.0 --port 80 --no-debugger --no-reload"]
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: debug
+      APP_KEYVAULT_URL: ${APPSETTING_KEYVAULT_URL}
+    ports:
+      - "80:80"

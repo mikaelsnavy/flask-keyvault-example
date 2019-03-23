@@ -1,4 +1,3 @@
-# Celery doesn't support 3.7 yet :(
 FROM python:3.6-alpine
 
 ADD requirements.txt /root/
@@ -9,5 +8,3 @@ RUN apk add --no-cache postgresql-libs libstdc++ && \
 
 COPY . /app
 WORKDIR /app
-ENTRYPOINT ["python"]
-CMD ["app.py"]
