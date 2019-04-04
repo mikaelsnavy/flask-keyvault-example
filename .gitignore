@@ -6,3 +6,5 @@ terraform/plan
 terraform/*.tfstate
 .env
 *.pyc
+terraform.tfstate
+terraform/terraform.tfstate.backup

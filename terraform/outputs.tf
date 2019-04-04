@@ -17,3 +17,7 @@ output "dockerfile_app_service_name" {
 output "dockerfile_app_service_default_hostname" {
   value = "https://${azurerm_app_service.dockerfile.default_site_hostname}"
 }
+
+output "keyvault_spn_application_id" {
+  value = "${azuread_application.tesazure.application_id}"
+}

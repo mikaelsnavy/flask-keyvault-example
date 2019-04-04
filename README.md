@@ -18,16 +18,12 @@ docker push mikaelsnavy/flask-keyvault-example
 
 After building and publishing your docker image, you can proceed in deploying the test environment. NOTE - this relies on [Terraform](https://www.terraform.io/) and the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest).
 
-First, create a service principal to be used for by Terraform for the deploy. (Authentication via the AZ cli has issues with  `azurerm_key_vault_access_policy`). Then populate the `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, and `ARM_TENANT_ID ` with the results to tell Terraform to authenticate using a service principal.
-
-```bash
-az ad sp create-for-rbac --name flask-keyvault-spn
-```
+Terraform will authenticate using the Azure CLI. Make sure to run `az login` before trying to deploy infrastructure through Terraform. The current CLI user must also be passed in order to give KeyVault access to populate our test secret.
 
 ```bash
 cd terraform/
 terraform init
-terraform plan -out "plan"
+terraform plan -var 'az_cli_user=mistadde@microsoft.com' -out "plan"
 terraform apply "plan"
 ```
 

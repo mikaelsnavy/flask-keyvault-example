@@ -1,0 +1,17 @@
+version: "3.3"
+
+services:
+  api:
+    image: "mikaelsnavy/flask-keyvault-example"
+    restart: always
+    command: ["sh","-c","python -m flask run --host 0.0.0.0 --port 80"]
+    # command: ["sh","-c","python -m ptvsd --host 0.0.0.0 --port 8080 --multiprocess --wait -m flask run --host 0.0.0.0 --port 80 --no-debugger --no-reload"]
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: debug
+      APP_KEYVAULT_URL: ${APPSETTING_KEYVAULT_URL}
+      APP_AZURE_CLIENT_ID: ${APPSETTING_AZURE_CLIENT_ID}
+      APP_AZURE_SECRET: ${APPSETTING_AZURE_SECRET}
+      APP_AZURE_TENANT: ${APPSETTING_AZURE_TENANT}
+    ports:
+      - "80:80"

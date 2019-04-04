@@ -1,3 +1,8 @@
+variable "az_cli_user" {
+  type = "string"
+  description = "Login name (email) of the user authenticating to the CLI"
+}
+
 variable "resource_group_name" {
   type        = "string"
   description = "Name of the azure resource group."

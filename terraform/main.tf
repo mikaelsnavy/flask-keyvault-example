@@ -1,9 +1,7 @@
 provider "azurerm" {
-  # following ENV need to exist: ARM_SUBSCRIPTION_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID
+  # Authenticates using Azure CLI
 }
 data "azurerm_client_config" "current" {}
-
-# Resource Group & ACR (https://github.com/terraform-providers/terraform-provider-azurerm/tree/master/examples/container-registry)
 
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group_name}"
@@ -46,6 +44,24 @@ resource "azurerm_key_vault" "vault" {
   }
 }
 
+#SPN for multi-container since MSI isn't supported yet
+resource "azuread_application" "tesazure" {
+  name                       = "tesazure"
+}
+resource "azuread_service_principal" "tesazure" {
+  application_id = "${azuread_application.tesazure.application_id}"
+}
+resource "random_string" "spn_password" {
+  length = 16
+  special = true
+}
+
+resource "azuread_service_principal_password" "tesazure" {
+  service_principal_id = "${azuread_service_principal.tesazure.id}"
+  value                        = "${random_string.spn_password.result}"
+  end_date_relative    = "26280h"
+}
+
 resource "azurerm_app_service" "compose" {
   name                             = "flask-keyvault-test-cp-${random_integer.ri.result}"
   location                         = "${azurerm_resource_group.rg.location}"
@@ -57,10 +73,13 @@ resource "azurerm_app_service" "compose" {
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = false
     KEYVAULT_URL = "${azurerm_key_vault.vault.vault_uri}"
     WEBSITE_HTTPLOGGING_RETENTION_DAYS = 3
+    AZURE_CLIENT_ID =  "${azuread_application.tesazure.application_id}"
+    AZURE_SECRET = "${random_string.spn_password.result}"
+    AZURE_TENANT = "${data.azurerm_client_config.current.tenant_id}"
   }
 
   site_config {
-    linux_fx_version = "COMPOSE|${base64encode(file("../docker-compose-azure.yml"))}"
+    linux_fx_version = "COMPOSE|${base64encode(file("../docker-compose.yml"))}"
   }
 
   identity {
@@ -144,11 +163,11 @@ resource "azurerm_key_vault_access_policy" "dockerfile-msi" {
 }
 
 # Give access to this script to pipulate a secret
-resource "azurerm_key_vault_access_policy" "spn" {
+resource "azurerm_key_vault_access_policy" "spn_id" {
   key_vault_id          = "${azurerm_key_vault.vault.id}"
 
   tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
-  object_id           = "${data.azurerm_client_config.current.service_principal_object_id}"
+  object_id           = "${azuread_service_principal.tesazure.id}"
 
 
   key_permissions = [
@@ -165,13 +184,47 @@ resource "azurerm_key_vault_access_policy" "spn" {
   ]
 }
 
+provider "azuread" {
+  alias = "ad"
+}
+
+data "azuread_user" "cli_user" {
+  provider = "azuread.ad"
+  user_principal_name = "${var.az_cli_user}"
+}
+
+resource "azurerm_key_vault_access_policy" "client_id" {
+  key_vault_id          = "${azurerm_key_vault.vault.id}"
+
+  tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
+  object_id           = "${data.azuread_user.cli_user.id}"
+
+
+  key_permissions = [
+  ]
+
+  secret_permissions = [
+    "get",
+    "list",
+    "set",
+    "delete"
+  ]
+
+  depends_on = [
+    "azurerm_key_vault.vault"
+  ]
+}
+
 resource "azurerm_key_vault_secret" "test" {
-  name     = "test-secret"
-  value    = "42"
+  name           = "test-secret"
+  value            = "42"
   key_vault_id = "${azurerm_key_vault.vault.id}"
 
   depends_on = [
     "azurerm_key_vault.vault",
-    "azurerm_key_vault_access_policy.spn"
+    "azurerm_key_vault_access_policy.spn_id",
+    "azurerm_key_vault_access_policy.client_id"
   ]
-}
+} 
+
+ 
